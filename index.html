@@ -403,18 +403,11 @@
 
 <script>
   // ================================================================
-  //  ⚙️  CONFIGURACIÓN — EDITÁ ESTAS DOS LÍNEAS
+  //  ⚙️  CONFIGURACIÓN
   // ================================================================
-  const DRIVE_API_KEY   = "AIzaSyDaN0t5qIW1NNfcNhzJnGvK44_yZHUdYts";       // Tu API Key de Google
-  const DRIVE_FOLDER_ID = "1C7MeJISLsC1NEq1ojbqxXmtwZAxOet2e";    // ID de la carpeta en Drive
+  const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwLj--Gr0-EAZdbZkC3S4xVSRD__q2VIcRsELkwV7L7p3afHDWeiMADmMniKAxVjn0y/exec";
   // ================================================================
 
-  // Verificar si está configurado
-  if (DRIVE_API_KEY === "PEGAR_API_KEY_AQUI" || DRIVE_FOLDER_ID === "PEGAR_ID_CARPETA_AQUI") {
-    document.getElementById("configAlert").style.display = "block";
-  }
-
-  // Enter en el input también busca
   document.getElementById("inputCodigo").addEventListener("keydown", e => {
     if (e.key === "Enter") buscarFacturas();
   });
@@ -453,82 +446,33 @@
       return;
     }
 
-    if (DRIVE_API_KEY === "PEGAR_API_KEY_AQUI" || DRIVE_FOLDER_ID === "PEGAR_ID_CARPETA_AQUI") {
-      const msg = document.getElementById("msgInfo");
-      msg.textContent = "El portal no está configurado todavía. Contactá al administrador.";
-      msg.className = "msg error";
-      return;
-    }
-
     limpiarResultados();
     setLoading(true);
 
     try {
-      // Buscar todos los archivos PDF en la carpeta de Drive
-      // La API de Drive no soporta búsqueda por substring en el nombre directamente,
-      // así que traemos todos los PDFs y filtramos del lado del cliente.
-      // Para carpetas grandes usamos paginación automática.
+      const res = await fetch(`${SCRIPT_URL}?codigo=${encodeURIComponent(codigo)}`);
+      const data = await res.json();
 
-      let todos = [];
-      let pageToken = null;
-
-      do {
-        const params = new URLSearchParams({
-          q: `'${DRIVE_FOLDER_ID}' in parents and mimeType='application/pdf' and trashed=false`,
-          fields: "nextPageToken, files(id, name, createdTime, modifiedTime)",
-          pageSize: 1000,
-          key: DRIVE_API_KEY,
-          orderBy: "name"
-        });
-
-        if (pageToken) params.set("pageToken", pageToken);
-
-        const res = await fetch(`https://www.googleapis.com/drive/v3/files?${params}`);
-
-        if (!res.ok) {
-          const err = await res.json();
-          throw new Error(err.error?.message || `Error HTTP ${res.status}`);
-        }
-
-        const data = await res.json();
-        todos = todos.concat(data.files || []);
-        pageToken = data.nextPageToken || null;
-
-      } while (pageToken);
-
-      // Filtrar los que tienen el código de cliente en la posición correcta
-      // Formato: [n]_[cod_factura]_[cod_cliente]_[nombre].pdf
-      const encontrados = todos.filter(f => {
-        const partes = f.name.replace(/\.pdf$/i, "").split("_");
-        return partes.length >= 3 && partes[2].trim() === codigo;
-      });
-
-      // Ordenar por fecha de modificación, más reciente primero
-      encontrados.sort((a, b) => new Date(b.modifiedTime) - new Date(a.modifiedTime));
+      const lista = data.facturas || [];
 
       document.getElementById("divider").style.display = "block";
 
-      if (encontrados.length === 0) {
+      if (lista.length === 0) {
         document.getElementById("emptyState").style.display = "block";
         return;
       }
 
       document.getElementById("resultadosHeader").style.display = "block";
       document.getElementById("resultadosHeader").textContent =
-        encontrados.length === 1 ? "1 factura encontrada" : `${encontrados.length} facturas encontradas`;
+        lista.length === 1 ? "1 factura encontrada" : `${lista.length} facturas encontradas`;
 
       const contenedor = document.getElementById("facturasLista");
 
-      encontrados.forEach((archivo, i) => {
-        const partes = archivo.name.replace(/\.pdf$/i, "").split("_");
-        const codFactura   = partes[1] || "";
-        const nombreCliente = partes.slice(3).join(" ") || archivo.name;
-        const fecha = new Date(archivo.modifiedTime).toLocaleDateString("es-AR", {
-          day: "2-digit", month: "2-digit", year: "numeric"
-        });
-
-        // URL de descarga directa desde Drive
-        const urlDescarga = `https://drive.google.com/uc?export=download&id=${archivo.id}`;
+      lista.forEach((factura, i) => {
+        const partes = factura.nombre.replace(/\.pdf$/i, "").split("_");
+        const codFactura    = partes[1] || "";
+        const nombreCliente = partes.slice(3).join(" ") || factura.nombre;
+        const urlDescarga   = `https://drive.google.com/uc?export=download&id=${factura.id}`;
 
         const item = document.createElement("div");
         item.className = "factura-item";
@@ -542,7 +486,7 @@
           </div>
           <div class="factura-info">
             <div class="factura-nombre">${nombreCliente}</div>
-            <div class="factura-cod">Comprobante: ${codFactura} &nbsp;·&nbsp; ${fecha}</div>
+            <div class="factura-cod">Comprobante: ${codFactura} &nbsp;·&nbsp; ${factura.fecha}</div>
           </div>
           <a class="btn-descargar" href="${urlDescarga}" target="_blank" rel="noopener">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
@@ -558,7 +502,7 @@
 
     } catch (err) {
       const msg = document.getElementById("msgInfo");
-      msg.textContent = "Error al conectar con Google Drive: " + err.message;
+      msg.textContent = "Error al conectar: " + err.message;
       msg.className = "msg error";
       console.error(err);
     } finally {
