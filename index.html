@@ -1,0 +1,570 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Portal de Facturas</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --navy:   #0f1f3d;
+      --navy2:  #162848;
+      --gold:   #c9a84c;
+      --gold2:  #e8c96a;
+      --cream:  #f5f0e8;
+      --white:  #ffffff;
+      --muted:  #8a9ab5;
+      --danger: #c0392b;
+      --green:  #1a6b45;
+    }
+
+    html, body {
+      min-height: 100vh;
+      font-family: 'DM Sans', sans-serif;
+      background: var(--navy);
+      color: var(--white);
+      overflow-x: hidden;
+    }
+
+    body::before {
+      content: '';
+      position: fixed; inset: 0;
+      background:
+        radial-gradient(ellipse 80% 60% at 50% -10%, rgba(201,168,76,0.12) 0%, transparent 65%),
+        radial-gradient(ellipse 50% 40% at 100% 100%, rgba(201,168,76,0.07) 0%, transparent 60%);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .page {
+      position: relative;
+      z-index: 1;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 60px 20px 80px;
+    }
+
+    .header {
+      text-align: center;
+      margin-bottom: 56px;
+      animation: fadeDown 0.7s ease both;
+    }
+
+    .logo-icon {
+      width: 64px; height: 64px;
+      background: linear-gradient(135deg, var(--gold), var(--gold2));
+      border-radius: 18px;
+      display: inline-flex; align-items: center; justify-content: center;
+      margin-bottom: 24px;
+      box-shadow: 0 8px 32px rgba(201,168,76,0.25);
+    }
+
+    .logo-icon svg { width: 32px; height: 32px; }
+
+    h1 {
+      font-family: 'DM Serif Display', serif;
+      font-size: clamp(2rem, 5vw, 3rem);
+      color: var(--white);
+      line-height: 1.15;
+      margin-bottom: 12px;
+      letter-spacing: -0.5px;
+    }
+
+    h1 em {
+      font-style: italic;
+      color: var(--gold2);
+    }
+
+    .subtitle {
+      font-size: 1rem;
+      color: var(--muted);
+      font-weight: 300;
+      letter-spacing: 0.3px;
+    }
+
+    .card {
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.09);
+      border-radius: 24px;
+      padding: 44px 40px;
+      width: 100%;
+      max-width: 520px;
+      backdrop-filter: blur(12px);
+      animation: fadeUp 0.7s 0.15s ease both;
+    }
+
+    .card-label {
+      font-size: 0.7rem;
+      font-weight: 600;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: var(--gold);
+      margin-bottom: 24px;
+    }
+
+    .input-group {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+
+    .input-wrap {
+      flex: 1;
+      position: relative;
+    }
+
+    .input-wrap svg {
+      position: absolute;
+      left: 16px; top: 50%;
+      transform: translateY(-50%);
+      color: var(--muted);
+      width: 18px; height: 18px;
+      pointer-events: none;
+    }
+
+    input[type="text"] {
+      width: 100%;
+      padding: 16px 16px 16px 46px;
+      background: rgba(255,255,255,0.06);
+      border: 1.5px solid rgba(255,255,255,0.12);
+      border-radius: 12px;
+      color: var(--white);
+      font-family: 'DM Sans', sans-serif;
+      font-size: 1rem;
+      font-weight: 500;
+      letter-spacing: 1px;
+      transition: border-color 0.2s, background 0.2s, box-shadow 0.2s;
+      outline: none;
+    }
+
+    input[type="text"]::placeholder { color: var(--muted); font-weight: 300; letter-spacing: 0; }
+    input[type="text"]:focus {
+      border-color: var(--gold);
+      background: rgba(201,168,76,0.06);
+      box-shadow: 0 0 0 3px rgba(201,168,76,0.12);
+    }
+
+    .btn-buscar {
+      padding: 16px 24px;
+      background: linear-gradient(135deg, var(--gold), var(--gold2));
+      border: none;
+      border-radius: 12px;
+      color: var(--navy);
+      font-family: 'DM Sans', sans-serif;
+      font-size: 0.95rem;
+      font-weight: 600;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: transform 0.15s, box-shadow 0.15s, opacity 0.15s;
+      box-shadow: 0 4px 20px rgba(201,168,76,0.3);
+      display: flex; align-items: center; gap: 8px;
+    }
+
+    .btn-buscar:hover { transform: translateY(-1px); box-shadow: 0 6px 28px rgba(201,168,76,0.4); }
+    .btn-buscar:active { transform: translateY(0); }
+    .btn-buscar:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+
+    .msg {
+      font-size: 0.85rem;
+      margin-top: 8px;
+      min-height: 20px;
+      padding: 0 4px;
+      transition: opacity 0.3s;
+    }
+    .msg.error { color: #e07070; }
+    .msg.info  { color: var(--muted); }
+
+    .divider {
+      height: 1px;
+      background: rgba(255,255,255,0.08);
+      margin: 32px 0;
+      display: none;
+    }
+
+    .resultados-header {
+      display: none;
+      font-size: 0.7rem;
+      font-weight: 600;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 16px;
+    }
+
+    .facturas-lista {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .factura-item {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding: 16px 18px;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 14px;
+      animation: fadeUp 0.4s ease both;
+      transition: background 0.2s, border-color 0.2s;
+    }
+
+    .factura-item:hover {
+      background: rgba(201,168,76,0.07);
+      border-color: rgba(201,168,76,0.2);
+    }
+
+    .factura-icono {
+      width: 40px; height: 40px;
+      background: rgba(201,168,76,0.12);
+      border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+      color: var(--gold);
+    }
+
+    .factura-info { flex: 1; min-width: 0; }
+
+    .factura-nombre {
+      font-size: 0.88rem;
+      font-weight: 500;
+      color: var(--cream);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .factura-cod {
+      font-size: 0.75rem;
+      color: var(--muted);
+      margin-top: 2px;
+      font-weight: 300;
+    }
+
+    .btn-descargar {
+      padding: 9px 16px;
+      background: transparent;
+      border: 1.5px solid rgba(201,168,76,0.4);
+      border-radius: 9px;
+      color: var(--gold2);
+      font-family: 'DM Sans', sans-serif;
+      font-size: 0.82rem;
+      font-weight: 600;
+      cursor: pointer;
+      white-space: nowrap;
+      display: flex; align-items: center; gap: 6px;
+      transition: background 0.2s, border-color 0.2s, color 0.2s;
+      flex-shrink: 0;
+      text-decoration: none;
+    }
+
+    .btn-descargar:hover {
+      background: var(--gold);
+      border-color: var(--gold);
+      color: var(--navy);
+    }
+
+    .spinner {
+      display: inline-block;
+      width: 16px; height: 16px;
+      border: 2px solid rgba(15,31,61,0.3);
+      border-top-color: var(--navy);
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+    }
+
+    .empty-state {
+      text-align: center;
+      padding: 32px 0 8px;
+      display: none;
+    }
+
+    .empty-icon {
+      font-size: 2.5rem;
+      margin-bottom: 12px;
+      opacity: 0.5;
+    }
+
+    .empty-text {
+      font-size: 0.9rem;
+      color: var(--muted);
+      font-weight: 300;
+    }
+
+    .footer {
+      margin-top: 48px;
+      text-align: center;
+      font-size: 0.78rem;
+      color: rgba(138,154,181,0.5);
+      animation: fadeUp 0.7s 0.3s ease both;
+    }
+
+    /* Alerta de configuración (solo se ve si no configuraste las claves) */
+    .config-alert {
+      background: rgba(201,168,76,0.1);
+      border: 1px solid rgba(201,168,76,0.3);
+      border-radius: 12px;
+      padding: 14px 18px;
+      font-size: 0.82rem;
+      color: var(--gold2);
+      margin-bottom: 24px;
+      display: none;
+    }
+
+    @keyframes fadeDown {
+      from { opacity: 0; transform: translateY(-18px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(14px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    @media (max-width: 520px) {
+      .card { padding: 32px 22px; border-radius: 18px; }
+      .input-group { flex-direction: column; }
+      .btn-buscar { width: 100%; justify-content: center; }
+    }
+  </style>
+</head>
+<body>
+<div class="page">
+
+  <div class="header">
+    <div class="logo-icon">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="color:#0f1f3d">
+        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+        <polyline points="14 2 14 8 20 8"/>
+        <line x1="16" y1="13" x2="8" y2="13"/>
+        <line x1="16" y1="17" x2="8" y2="17"/>
+        <polyline points="10 9 9 9 8 9"/>
+      </svg>
+    </div>
+    <h1>Portal de <em>Facturas</em></h1>
+    <p class="subtitle">Ingresá tu código de cliente para descargar tus comprobantes</p>
+  </div>
+
+  <div class="card">
+    <div class="config-alert" id="configAlert">
+      ⚠️ Falta configurar <strong>DRIVE_API_KEY</strong> y <strong>DRIVE_FOLDER_ID</strong> en el archivo index.html
+    </div>
+
+    <div class="card-label">Buscar mis facturas</div>
+
+    <div class="input-group">
+      <div class="input-wrap">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
+        </svg>
+        <input
+          id="inputCodigo"
+          type="text"
+          placeholder="Código de cliente (ej: 10111)"
+          maxlength="30"
+          autocomplete="off"
+          autocorrect="off"
+          spellcheck="false"
+        />
+      </div>
+      <button class="btn-buscar" id="btnBuscar" onclick="buscarFacturas()">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+        </svg>
+        Buscar
+      </button>
+    </div>
+
+    <div class="msg info" id="msgInfo"></div>
+
+    <div class="divider" id="divider"></div>
+    <div class="resultados-header" id="resultadosHeader">Facturas encontradas</div>
+
+    <div class="facturas-lista" id="facturasLista"></div>
+
+    <div class="empty-state" id="emptyState">
+      <div class="empty-icon">📄</div>
+      <div class="empty-text">No encontramos facturas para ese código.<br>Verificá el número e intentá de nuevo.</div>
+    </div>
+  </div>
+
+  <div class="footer">
+    Si tenés inconvenientes, contactá a nuestro equipo de administración.
+  </div>
+
+</div>
+
+<script>
+  // ================================================================
+  //  ⚙️  CONFIGURACIÓN — EDITÁ ESTAS DOS LÍNEAS
+  // ================================================================
+  const DRIVE_API_KEY   = "AIzaSyDaN0t5qIW1NNfcNhzJnGvK44_yZHUdYts";       // Tu API Key de Google
+  const DRIVE_FOLDER_ID = "1C7MeJISLsC1NEq1ojbqxXmtwZAxOet2e";    // ID de la carpeta en Drive
+  // ================================================================
+
+  // Verificar si está configurado
+  if (DRIVE_API_KEY === "PEGAR_API_KEY_AQUI" || DRIVE_FOLDER_ID === "PEGAR_ID_CARPETA_AQUI") {
+    document.getElementById("configAlert").style.display = "block";
+  }
+
+  // Enter en el input también busca
+  document.getElementById("inputCodigo").addEventListener("keydown", e => {
+    if (e.key === "Enter") buscarFacturas();
+  });
+
+  function setLoading(loading) {
+    const btn = document.getElementById("btnBuscar");
+    if (loading) {
+      btn.disabled = true;
+      btn.innerHTML = '<span class="spinner"></span> Buscando...';
+    } else {
+      btn.disabled = false;
+      btn.innerHTML = `
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+        </svg>
+        Buscar`;
+    }
+  }
+
+  function limpiarResultados() {
+    document.getElementById("facturasLista").innerHTML = "";
+    document.getElementById("emptyState").style.display = "none";
+    document.getElementById("divider").style.display = "none";
+    document.getElementById("resultadosHeader").style.display = "none";
+    document.getElementById("msgInfo").textContent = "";
+    document.getElementById("msgInfo").className = "msg info";
+  }
+
+  async function buscarFacturas() {
+    const codigo = document.getElementById("inputCodigo").value.trim();
+
+    if (!codigo) {
+      const msg = document.getElementById("msgInfo");
+      msg.textContent = "Por favor ingresá tu código de cliente.";
+      msg.className = "msg error";
+      return;
+    }
+
+    if (DRIVE_API_KEY === "PEGAR_API_KEY_AQUI" || DRIVE_FOLDER_ID === "PEGAR_ID_CARPETA_AQUI") {
+      const msg = document.getElementById("msgInfo");
+      msg.textContent = "El portal no está configurado todavía. Contactá al administrador.";
+      msg.className = "msg error";
+      return;
+    }
+
+    limpiarResultados();
+    setLoading(true);
+
+    try {
+      // Buscar todos los archivos PDF en la carpeta de Drive
+      // La API de Drive no soporta búsqueda por substring en el nombre directamente,
+      // así que traemos todos los PDFs y filtramos del lado del cliente.
+      // Para carpetas grandes usamos paginación automática.
+
+      let todos = [];
+      let pageToken = null;
+
+      do {
+        const params = new URLSearchParams({
+          q: `'${DRIVE_FOLDER_ID}' in parents and mimeType='application/pdf' and trashed=false`,
+          fields: "nextPageToken, files(id, name, createdTime, modifiedTime)",
+          pageSize: 1000,
+          key: DRIVE_API_KEY,
+          orderBy: "name"
+        });
+
+        if (pageToken) params.set("pageToken", pageToken);
+
+        const res = await fetch(`https://www.googleapis.com/drive/v3/files?${params}`);
+
+        if (!res.ok) {
+          const err = await res.json();
+          throw new Error(err.error?.message || `Error HTTP ${res.status}`);
+        }
+
+        const data = await res.json();
+        todos = todos.concat(data.files || []);
+        pageToken = data.nextPageToken || null;
+
+      } while (pageToken);
+
+      // Filtrar los que tienen el código de cliente en la posición correcta
+      // Formato: [n]_[cod_factura]_[cod_cliente]_[nombre].pdf
+      const encontrados = todos.filter(f => {
+        const partes = f.name.replace(/\.pdf$/i, "").split("_");
+        return partes.length >= 3 && partes[2].trim() === codigo;
+      });
+
+      // Ordenar por fecha de modificación, más reciente primero
+      encontrados.sort((a, b) => new Date(b.modifiedTime) - new Date(a.modifiedTime));
+
+      document.getElementById("divider").style.display = "block";
+
+      if (encontrados.length === 0) {
+        document.getElementById("emptyState").style.display = "block";
+        return;
+      }
+
+      document.getElementById("resultadosHeader").style.display = "block";
+      document.getElementById("resultadosHeader").textContent =
+        encontrados.length === 1 ? "1 factura encontrada" : `${encontrados.length} facturas encontradas`;
+
+      const contenedor = document.getElementById("facturasLista");
+
+      encontrados.forEach((archivo, i) => {
+        const partes = archivo.name.replace(/\.pdf$/i, "").split("_");
+        const codFactura   = partes[1] || "";
+        const nombreCliente = partes.slice(3).join(" ") || archivo.name;
+        const fecha = new Date(archivo.modifiedTime).toLocaleDateString("es-AR", {
+          day: "2-digit", month: "2-digit", year: "numeric"
+        });
+
+        // URL de descarga directa desde Drive
+        const urlDescarga = `https://drive.google.com/uc?export=download&id=${archivo.id}`;
+
+        const item = document.createElement("div");
+        item.className = "factura-item";
+        item.style.animationDelay = `${i * 0.07}s`;
+        item.innerHTML = `
+          <div class="factura-icono">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+              <polyline points="14 2 14 8 20 8"/>
+            </svg>
+          </div>
+          <div class="factura-info">
+            <div class="factura-nombre">${nombreCliente}</div>
+            <div class="factura-cod">Comprobante: ${codFactura} &nbsp;·&nbsp; ${fecha}</div>
+          </div>
+          <a class="btn-descargar" href="${urlDescarga}" target="_blank" rel="noopener">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+              <polyline points="7 10 12 15 17 10"/>
+              <line x1="12" y1="15" x2="12" y2="3"/>
+            </svg>
+            Descargar
+          </a>
+        `;
+        contenedor.appendChild(item);
+      });
+
+    } catch (err) {
+      const msg = document.getElementById("msgInfo");
+      msg.textContent = "Error al conectar con Google Drive: " + err.message;
+      msg.className = "msg error";
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  }
+</script>
+</body>
+</html>
